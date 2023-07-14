@@ -1,0 +1,65 @@
+import hashlib
+import PyPDF2
+page_hashes = []
+
+def calculate_hash(content, hash_algorithm):
+    hash_object = hashlib.new(hash_algorithm)
+    hash_object.update(content.encode())
+    return hash_object.hexdigest()
+
+def hash_specific_pages(pdf_path, page_numbers, hash_algorithm):
+    # Open the PDF file
+    with open(pdf_path, 'rb') as file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        
+        
+        for page_number in page_numbers:
+            # Validate the page number
+            if page_number < 0 or page_number >= len(pdf_reader.pages):
+                print(f"Invalid page number: {page_number}")
+                continue
+            
+            # Extract the page content
+            page = pdf_reader.pages[page_number]
+            content = page.extract_text()
+            
+            # Calculate the hash of the page content
+            page_hash = calculate_hash(content, hash_algorithm)
+            page_hashes.append(page_hash)
+        
+        return page_hashes
+
+# Example usage
+pdf_path = "C:/Users/HP/Downloads/CGS401/Chang _Tsao_Code for Facial Identity.pdf"
+pages_to_hash = [1, 4, 7]  # Specify the page numbers you want to hash
+hash_algorithm = 'sha256'  # Choose the desired hashing algorithm: 'md5', 'sha1', 'sha256', etc.
+
+# Hash the specific pages of the document
+page_hashes = hash_specific_pages(pdf_path, pages_to_hash, hash_algorithm)
+
+# Print the hashes
+print(page_hashes)
+
+import csv
+
+def check_elements_in_csv(elements, csv_file_path):
+    # Read the CSV file
+    with open(csv_file_path, 'r') as csv_file:
+        reader = csv.reader(csv_file)
+        csv_data = list(reader)
+    
+    # Check if elements are present in the CSV columns
+    for element in elements:
+        found = False
+        for row in csv_data:
+            if element in row:
+                found = True
+                break
+        if found:
+            print(f"Element '{element}' is present in the CSV file.")
+        else:
+            print(f"Element '{element}' is not present in the CSV file.")
+
+# Usage example
+csv_file_path = "C:/Users/HP/Desktop/hashes.csv"
+check_elements_in_csv(page_hashes, csv_file_path)

@@ -1,0 +1,45 @@
+import os
+import hashlib
+import PyPDF2
+import csv
+
+def calculate_page_hash(page_data):
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(page_data)
+    return sha256_hash.hexdigest()
+
+def calculate_hash_of_specific_pages(file_path, page_numbers):
+    with open(file_path, 'rb') as file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        page_objects = pdf_reader.pages
+
+        hashes = []
+        for page_number in page_numbers:
+            if page_number <= len(page_objects):
+                page_object = page_objects[page_number - 1]
+                page_data = page_object.extract_text().encode('utf-8')
+                page_hash = calculate_page_hash(page_data)
+                hashes.append(page_hash)
+            else:
+                hashes.append('Page does not exist')
+
+        return hashes
+
+def process_all_pdfs(folder_path, page_numbers, output_file):
+    with open(output_file, 'w', newline='') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(['File', *page_numbers])
+
+        for file_name in os.listdir(folder_path):
+            if file_name.endswith('.pdf'):
+                file_path = os.path.join(folder_path, file_name)
+                print(f"Processing file: {file_path}")
+                hashes = calculate_hash_of_specific_pages(file_path, page_numbers)
+                writer.writerow([file_name, *hashes])
+
+# Example usage
+folder_path = "C:/Users/HP/Downloads/CGS401"
+pages_to_hash = [2, 5, 8]
+output_file = "C:/Users/HP/Desktop/hashes.csv"
+
+process_all_pdfs(folder_path, pages_to_hash, output_file)

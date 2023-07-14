@@ -1,0 +1,76 @@
+import csv
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import MultiLabelBinarizer
+
+# Download required resources from NLTK
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Read data from the CSV file
+def read_documents_from_csv(csv_file):
+    documents = []
+    categories = []
+    with open(csv_file, 'r', encoding='utf-8') as file:  # Specify the appropriate encoding
+        reader = csv.reader(file)
+        next(reader)  # Skip the header row if present
+        for row in reader:
+            document = row[6]  # Assuming the document text is in the first column
+            category = [cell for cell in row[2:6] if cell.strip()]  # Skip empty cells
+            if category:  # Skip rows with no categories
+                documents.append(document)
+                categories.append(category)
+    return documents, categories
+
+# Preprocess the documents
+def preprocess_documents(documents):
+    stop_words = set(stopwords.words('english'))
+    preprocessed_documents = []
+    for doc in documents:
+        tokens = word_tokenize(doc.lower())
+        filtered_tokens = [token for token in tokens if token.isalpha() and token not in stop_words]
+        preprocessed_documents.append(' '.join(filtered_tokens))
+    return preprocessed_documents
+
+# Train the document categorization model
+def train_document_categorization_model(documents, categories):
+    vectorizer = TfidfVectorizer()
+    X_train_features = vectorizer.fit_transform(documents)
+
+    mlb = MultiLabelBinarizer()
+    y_train = mlb.fit_transform(categories)
+
+    classifier = OneVsRestClassifier(SVC())
+    classifier.fit(X_train_features, y_train)
+    return vectorizer, classifier, mlb
+
+# Categorize a new document
+def categorize_new_document(new_document, vectorizer, classifier, mlb):
+    preprocessed_new_document = ' '.join([token for token in word_tokenize(new_document.lower()) if token.isalpha()])
+    new_document_features = vectorizer.transform([preprocessed_new_document])
+    predicted_categories = classifier.predict(new_document_features)
+    predicted_categories = mlb.inverse_transform(predicted_categories)
+    return predicted_categories
+
+# Main code execution
+csv_file = "C:/Users/HP/Desktop/cer_docs_details(1).csv"  # Specify the path or filename of the CSV file
+new_document = "SSERC (Licenses) Regulations, 2019"  # Specify the new document text
+
+# Read documents from the CSV file
+documents, categories = read_documents_from_csv(csv_file)
+
+# Preprocess the documents
+preprocessed_documents = preprocess_documents(documents)
+
+# Train the document categorization model
+vectorizer, classifier, mlb = train_document_categorization_model(preprocessed_documents, categories)
+
+# Categorize the new document
+predicted_categories = categorize_new_document(new_document, vectorizer, classifier, mlb)
+
+# Print the predicted categories
+print("Predicted Categories:", predicted_categories)
